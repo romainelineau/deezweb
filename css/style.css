@@ -117,6 +117,14 @@ a#randomTrack:hover {
 .plyr__control svg {
     fill: #fff;
 }
+.plyr--audio .plyr__control.plyr__tab-focus, 
+.plyr--audio .plyr__control:hover, 
+.plyr--audio .plyr__control[aria-expanded="true"] {
+    background: #28a745;
+}
+.plyr--full-ui input[type="range"] {
+    color: #28a745;
+}
 
 /* - - - RESPONSIVE - - - */
 @media (max-width: 1200px) {  }

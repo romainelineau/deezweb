@@ -44,16 +44,17 @@
     </nav>
 
     <div class="container">
-        <div class="row d-flex justify-content-center">
+        <div class="row d-flex justify-content-center container-search-form">
             <h2 class="col-12 text-white text-center mb-5">Recherche</h2>
             <form id="search" class="col-12 d-flex justify-content-center align-items-center">
                 <div class="input-group">
                     <input type="text" id="request" class="col-12 col-sm-5 col-md-6 col-lg-7 form-control text-center text-sm-left border-0 px-4 py-3 m-0" placeholder="Rechercher un titre, un artiste, un album...">
                     <select id="orderBy" class="col-12 col-sm-4 col-md-3 custom-select text-center text-sm-left border-0 px-4 py-3 m-0">                        
-                        <option value="RANKING">Popularité</option>
+                        <option value="RANKING">Rang</option>
                         <option value="TRACK_ASC">Titre</option>
                         <option value="ALBUM_ASC">Album</option>
                         <option value="ARTIST_ASC">Artiste</option>
+                        <option value="RATING_ASC">Popularité</option>                        
                     </select>
                     <span class="input-group-btn col-12 col-sm-3 col-lg-2 p-0 m-0">
                         <button class="btn btn-secondary border-0 px-4 py-3" type="submit">Rechercher</button>
@@ -61,8 +62,10 @@
                 </div>
             </form>            
         </div>
+        <div id="messageForm"></div>
         <div id="results" class="row mt-5 text-white">
         </div>
+        <div id="pagination" class="row mt-5 d-flex justify-content-center"></div>
     </div>
 
     <audio id="player-footer" crossorigin playsinline>
@@ -79,152 +82,6 @@
     <script src="https://unpkg.com/jquery"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    <script>
-        $(document).ready(function() {
-
-            localStorage.removeItem("cache-sprite-plyr");
-            
-            $('form#search').on('submit', function(evt) {
-
-                evt.preventDefault();
-
-                const request = encodeURIComponent($('#request').val());
-                const orderBy = encodeURIComponent($('#orderBy').val());
-				searchOnDeezer(request, orderBy);
-
-                function searchOnDeezer(request, orderBy) {
-                    const API_URL = 'https://api.deezer.com/search';
-                    const params = { 
-                        q           : request, 
-                        order       : orderBy, 
-                        output      : 'jsonp' 
-                    };
-                    const query = $.ajax({
-                        url 		: API_URL,
-                        data 		: params,
-                        dataType 	: 'jsonp'
-                    });
-
-                    query.done(onSuccess);
-                    query.fail(onError);
-                }
-
-                function onSuccess({ data : musics }) {
-                    const htmlContent = musics.map(renderMusic).join('');
-                    $('#results').html(htmlContent);
-                    
-                    $('.button-play').on('click', function(evt) {
-
-                        evt.preventDefault();
-
-                        if($('i', this).attr('class') === 'fas fa-play') {
-                            $('.button-play i').removeClass();
-                            $('.button-play i').addClass('fas fa-play');
-
-                            const linkPreview = $(this).attr('id');
-                            $('i', this).removeClass();
-                            $('i', this).addClass('fas fa-pause');
-
-                            if($('#player-footer').attr('src') === linkPreview) {
-                                player.play();
-                            }
-                            else {
-                                $('#player-footer').attr('src', linkPreview);
-                                player.play();
-                            }
-                        }
-                        else {
-                            $('i', this).removeClass();
-                            $('i', this).addClass('fas fa-play');
-                            player.pause();                          
-                        }
-
-                    });
-
-                    $('.button-like').on('click', function(evt) {
-                        evt.preventDefault();
-
-                        if ($(this).hasClass("liked")) {
-                            let id = $(this).closest('.track').attr('id');
-                            let idTrackJSON = JSON.stringify(id);
-
-                            localStorage.removeItem(idTrackJSON);
-                            
-                            $(this).removeClass("liked");
-
-                        }
-                        else {
-
-                            $(this).addClass("liked");
-
-                            let cover   = $(this).closest('div').prev('div').children('img').attr('src');
-                                title   = $(this).closest('div').children('.title').text(),
-                                artist  = $(this).closest('div').children('p').children('.artist').text(),
-                                album   = $(this).closest('div').children('.album').text(),
-                                preview = $(this).prev().attr('id'),
-                                id      = $(this).closest('.track').attr('id');
-
-                            let track = {
-                                id: id,
-                                cover: cover, 
-                                title: title, 
-                                artist: artist, 
-                                album: album, 
-                                preview: preview
-                            };
-                            let trackJSON = JSON.stringify(track);
-                            let idTrackJSON = JSON.stringify(id);
-
-                            localStorage.setItem(idTrackJSON, trackJSON);
-
-                        }                        
-                        
-                    });
-                }
-
-                function onError(errorText) {
-                    $('#results').html(`<p class="text-center text-primary fs-24 w-100 mt-3">
-                                            ${errorText.statusText} ${errorText.status}
-                                        </p>
-                                        <p class="text-center fs-24 w-100 mt-3">
-                                            Oops ! Une erreur est survenue... 
-                                            <br><span class="text-light-gray fs-21">Relancez votre recherche dans quelques minutes :)</span>
-                                        </p>`);
-                }
-
-                function renderMusic(music) {
-
-                    let liked = "";
-
-                    for (var i = 0; i < localStorage.length; i++) {
-                        let track = JSON.parse(localStorage.getItem(localStorage.key(i)));
-
-                        if (track.id == music.id) {
-                            liked = "liked";
-                        }
-                    }
-
-                    return `<div class="col-12 col-md-6 p-0 m-0">
-                                <div id="${music.id}" class="row p-3 mx-2 my-2 track-card track">
-                                    <div class="col-sm-4 m-0 p-0 d-none d-sm-block">
-                                        <img src="${music.album.cover_medium}" class="w-100 rounded border-white">
-                                    </div>
-                                    <div class="col-12 col-sm-8 m-0 p-0 pl-2 pl-sm-4 text-white">
-                                        <h3 class="title fs-16 m-0">${music.title_short}</h3>
-                                        <p class="album font-italic text-secondary fs-14 m-0">${music.album.title}</p>
-                                        <p class="fs-14">par <span class="artist text-primary m-0">${music.artist.name}</span></p>
-                                        <a href="" id="${music.preview}" class="button-play text-white fs-24 mr-4"><i class="fas fa-play"></i></a>
-                                        <a href="" class="button-like text-secondary fs-24 ${liked}"><i class="fas fa-heart"></i></a>
-                                    </div>
-                                </div>                                
-                            </div>`;
-                }
-
-                
-
-            });
-            
-        });
-    </script>    
+    <script src="js/functions-search.js"></script>
 </body>
 </html>
